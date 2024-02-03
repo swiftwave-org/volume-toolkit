@@ -1,6 +1,6 @@
 > Note: This image is solely for internal use. So we are not accepting outside contributions except **Security Vulnerabilities** . 
 
-### Volume Kit
+### Volume Toolkit
 
 **This image has only two purposes**
 1. Export a persistent named volume to a *.tar.gz file.
