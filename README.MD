@@ -19,7 +19,7 @@
 
   a. Mount and export
    ```bash
-   docker run --rm -v <persistent-volume-name>:/data -v /path/to/backup:/app volume-toolkit export
+   docker run --rm -v <persistent-volume-name>:/data -v /path/to/backup:/app ghcr.io/swiftwave-org/volume-toolkit export
    ```
    > Note : It is recommended to use `tmp` for `/path/to/backup` as it will be deleted after the export process.
 
@@ -43,5 +43,5 @@
    ```
    c. Wipe up persistent volume and import data from backup
    ```bash
-   docker run --rm -v <persistent-volume-name>:/data -v /path/to/backup:/app volume-toolkit import
+   docker run --rm -v <persistent-volume-name>:/data -v /path/to/backup:/app ghcr.io/swiftwave-org/volume-toolkit import
    ```
