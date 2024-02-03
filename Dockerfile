@@ -1,8 +1,8 @@
 FROM busybox
 
-RUN mkdir /app
+RUN mkdir -p /app
 RUN chmod 777 /app
-RUN mkdir /backup
+RUN mkdir -p /backup
 RUN chmod 777 /backup
 
 COPY ./volume_toolkit /usr/bin/volume_toolkit

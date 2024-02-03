@@ -16,6 +16,7 @@
 #### Usage
 
 1. Export a persistent volume
+
   a. Mount and export
    ```bash
    docker run --rm -v <persistent-volume-name>:/data -v /path/to/backup:/app volume-toolkit export
@@ -31,6 +32,7 @@
    rm -rf /path/to/backup
    ```
 2. Import a persistent volume
+
    a. Create a tmp directory
    ```bash
    mkdir /path/to/backup
