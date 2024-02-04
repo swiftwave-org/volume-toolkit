@@ -45,3 +45,10 @@
    ```bash
    docker run --rm -v <persistent-volume-name>:/data -v /path/to/backup:/app ghcr.io/swiftwave-org/volume-toolkit import
    ```
+3. Measure the size of a persistent volume
+
+   a. Run the following command
+   ```bash
+   docker run --rm -v <persistent-volume-name>:/data  -v /path/to/backup:/app volume-toolkit size
+   ```
+   b. The size of the persistent volume will be written in `/path/to/backup/size.txt` file in bytes format.

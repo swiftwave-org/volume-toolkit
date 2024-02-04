@@ -11,7 +11,11 @@ elif [ "$1" == "import" ]; then
         echo "dump.tar.gz not found"
         exit 1
     fi
+elif [ "$1" == "size" ]; then
+    size=$(du -sb /data | awk '{print $1}')
+    printf "%s" "$size" > /app/size.txt
+    exit 0
 else
-    echo "Usage: volume_export.sh [export|import]"
+    echo "Usage: [export|import|size]"
     exit 1
 fi
