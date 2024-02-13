@@ -31,6 +31,7 @@
    ```bash
    rm -rf /path/to/backup
    ```
+
 2. Import a persistent volume
 
    a. Create a tmp directory
@@ -45,6 +46,7 @@
    ```bash
    docker run --rm -v <persistent-volume-name>:/data -v /path/to/backup:/app ghcr.io/swiftwave-org/volume-toolkit import
    ```
+
 3. Measure the size of a persistent volume
 
    a. Run the following command
