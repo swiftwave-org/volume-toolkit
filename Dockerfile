@@ -1,4 +1,4 @@
-FROM --platform=$BUILDPLATFORM busybox
+FROM --platform=$TARGETPLATFORM busybox
 
 RUN mkdir -p /app
 RUN chmod 777 /app
