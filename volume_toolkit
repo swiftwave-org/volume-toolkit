@@ -15,7 +15,11 @@ elif [ "$1" == "size" ]; then
     size=$(du -sb /data | awk '{print $1}')
     printf "%s" "$size" > /app/size.txt
     exit 0
+elif [ "$1" == "destroy"]; then
+    sudo rm -rf /data
+    printf "Deleted all contents of persistent volume"
+    exit 0
 else
-    echo "Usage: [export|import|size]"
+    echo "Usage: [export|import|size|destroy]"
     exit 1
 fi
