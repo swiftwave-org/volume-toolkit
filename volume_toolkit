@@ -7,7 +7,7 @@ elif [ "$1" == "import" ]; then
     cd /app
     if [ -f dump.tar.gz ]; then
         tar -xzvf dump.tar.gz --directory /backup && rm -rf /data/* && mv /backup/* /data/
-    else
+    # else
         echo "dump.tar.gz not found"
         exit 1
     fi
