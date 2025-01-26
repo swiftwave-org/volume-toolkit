@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"strconv"
 
 	"github.com/spf13/cobra"
 )
@@ -17,15 +18,41 @@ var rootCmd = &cobra.Command{
 	},
 }
 
+var filePath string
+
 func init() {
-	importCmd.Flags().String("path", "/app/backup.tar.gz", "Path of tar to import")
-	importCmd.Flags().String("http-method", "GET", "HTTP method to use")
+	rootCmd.Flags().SortFlags = false
 	rootCmd.AddCommand(importCmd)
-	exportCmd.Flags().String("path", "/app/backup.tar.gz", "Path of tar to export") // Path or URL where the backup will be stored.
-	exportCmd.Flags().String("http-method", "PUT", "HTTP method to use")
 	rootCmd.AddCommand(exportCmd)
 	rootCmd.AddCommand(sizeCmd)
 	rootCmd.AddCommand(destroyCmd)
+	rootCmd.AddCommand(fileOpCmd)
+
+	importCmd.Flags().String("path", "/app/backup.tar.gz", "Path of tar to import")
+	importCmd.Flags().String("http-method", "GET", "HTTP method to use")
+
+	exportCmd.Flags().String("path", "/app/backup.tar.gz", "Path of tar to export") // Path or URL where the backup will be stored.
+	exportCmd.Flags().String("http-method", "PUT", "HTTP method to use")
+
+	fileOpCmd.PersistentFlags().StringVar(&filePath, "path", "", "Path of the file")
+	fileOpCmd.MarkPersistentFlagRequired("path")
+
+	fileOpCmd.Flags().SortFlags = false
+	fileOpCmd.AddCommand(lsCmd)
+	fileOpCmd.AddCommand(catCmd)
+	fileOpCmd.AddCommand(cpCmd)
+	fileOpCmd.AddCommand(mvCmd)
+	fileOpCmd.AddCommand(rmCmd)
+	fileOpCmd.AddCommand(mkdirCmd)
+	fileOpCmd.AddCommand(chmodCmd)
+
+	chownCmd.Flags().String("uid", "", "User ID")
+	chownCmd.Flags().String("gid", "", "Group ID")
+	chownCmd.MarkFlagRequired("uid")
+	chownCmd.MarkFlagRequired("gid")
+	fileOpCmd.AddCommand(chownCmd)
+
+	fileOpCmd.AddCommand(downloadCmd)
 }
 
 func main() {
@@ -108,5 +135,162 @@ var destroyCmd = &cobra.Command{
 		// Destroy the backup.
 		_ = os.RemoveAll(pvDirectory)
 		PrintData("All data has been destroyed")
+	},
+}
+
+/*
+file-op command
+ - ls <full_path>
+ - cat <full_path>
+ - cp <full_path> <full_path_dest>
+ - mv <full_path> <full_path_dest>
+ - rm <full_path> [Do recursive delete anyway]
+ - mkdir <full_path> [Will create all the directories in the path]
+ - chmod <mode> <full_path>
+ - chown <uid> <gid> <full_path>
+ - download <url> <full_path>
+*/
+
+var fileOpCmd = &cobra.Command{
+	Use: "file-op",
+	Run: func(cmd *cobra.Command, args []string) {
+		cmd.Help()
+	},
+}
+
+var lsCmd = &cobra.Command{
+	Use: "ls",
+	Run: func(cmd *cobra.Command, args []string) {
+		path := filePath
+		files, err := ListFiles(path)
+		if err != nil {
+			PrintError(err.Error())
+		}
+		PrintData(files)
+	},
+}
+
+var catCmd = &cobra.Command{
+	Use: "cat",
+	Run: func(cmd *cobra.Command, args []string) {
+		path := filePath
+		data, err := os.ReadFile(path)
+		if err != nil {
+			PrintError(err.Error())
+		}
+		// Stream the bytes to the stdout.
+		os.Stdout.Write(data)
+	},
+}
+
+var cpCmd = &cobra.Command{
+	Use: "cp",
+	Run: func(cmd *cobra.Command, args []string) {
+		if len(args) != 1 {
+			PrintError("Invalid number of arguments")
+		}
+		src := filePath
+		dest := args[0]
+		// copy file without changing the ownership and permissions.
+		err := CopyFile(src, dest)
+		if err != nil {
+			PrintError(err.Error())
+		}
+		PrintData("file has been copied")
+	},
+}
+
+var mvCmd = &cobra.Command{
+	Use: "mv",
+	Run: func(cmd *cobra.Command, args []string) {
+		if len(args) != 1 {
+			PrintError("Invalid number of arguments")
+		}
+		src := filePath
+		dest := args[0]
+		// move file without changing the ownership and permissions.
+		err := MoveFile(src, dest)
+		if err != nil {
+			PrintError(err.Error())
+		}
+		PrintData("file has been moved")
+	},
+}
+
+var rmCmd = &cobra.Command{
+	Use: "rm",
+	Run: func(cmd *cobra.Command, args []string) {
+		path := filePath
+		err := os.RemoveAll(path)
+		if err != nil {
+			PrintError(err.Error())
+		}
+		PrintData("file has been removed")
+	},
+}
+
+var mkdirCmd = &cobra.Command{
+	Use: "mkdir",
+	Run: func(cmd *cobra.Command, args []string) {
+		path := filePath
+		err := os.MkdirAll(path, 0777)
+		if err != nil {
+			PrintError(err.Error())
+		}
+		PrintData("directory has been created")
+	},
+}
+
+var chmodCmd = &cobra.Command{
+	Use: "chmod",
+	Run: func(cmd *cobra.Command, args []string) {
+		if len(args) != 1 {
+			PrintError("Invalid number of arguments")
+		}
+		mode := args[0] // mode should be in octal format like 777, 755 etc.
+		perm, err := strconv.ParseUint(mode, 8, 32)
+		if err != nil {
+			PrintError(err.Error())
+		}
+		path := filePath
+		err = os.Chmod(path, os.FileMode(perm))
+		if err != nil {
+			PrintError(err.Error())
+		}
+		PrintData("file permissions have been changed")
+	},
+}
+
+var chownCmd = &cobra.Command{
+	Use: "chown",
+	Run: func(cmd *cobra.Command, args []string) {
+		uid, err := strconv.Atoi(cmd.Flag("uid").Value.String())
+		if err != nil {
+			PrintError(err.Error())
+		}
+		gid, err := strconv.Atoi(cmd.Flag("gid").Value.String())
+		if err != nil {
+			PrintError(err.Error())
+		}
+		err = os.Chown(filePath, uid, gid)
+		if err != nil {
+			PrintError(err.Error())
+		}
+		PrintData("file ownership has been changed")
+	},
+}
+
+var downloadCmd = &cobra.Command{
+	Use: "download",
+	Run: func(cmd *cobra.Command, args []string) {
+		if len(args) != 1 {
+			PrintError("Invalid number of arguments")
+		}
+		url := args[0]
+		err := DownloadFile(url, filePath)
+		if err != nil {
+			PrintError(err.Error())
+		}
+		PrintData("file has been downloaded")
 	},
 }

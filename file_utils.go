@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"io"
+	"net/http"
 	"os"
 	"path/filepath"
 	"sync/atomic"
@@ -10,14 +12,13 @@ import (
 )
 
 type FileInfo struct {
-	Name         string      `json:"name"`
-	RelativePath string      `json:"relative_path"`
-	Size         int64       `json:"size"`
-	Mode         os.FileMode `json:"mode"`
-	ModTime      time.Time   `json:"mod_time"`
-	UID          uint        `json:"uid"`
-	GID          uint        `json:"gid"`
-	IsDir        bool        `json:"is_dir"`
+	Name    string    `json:"name"`
+	Size    int64     `json:"size"`
+	Mode    string    `json:"mode"`
+	ModTime time.Time `json:"mod_time"`
+	UID     uint      `json:"uid"`
+	GID     uint      `json:"gid"`
+	IsDir   bool      `json:"is_dir"`
 }
 
 /*
@@ -71,6 +72,65 @@ func WriteFile(path string, data []byte, perm os.FileMode, uid int, gid int) err
 		return err
 	}
 
+	return nil
+}
+
+func CopyFile(src, dst string) error {
+	// Open source file
+	srcFile, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer srcFile.Close()
+
+	// Create destination file
+	dstFile, err := os.Create(dst)
+	if err != nil {
+		return err
+	}
+	defer dstFile.Close()
+
+	// Copy contents of source file to destination file
+	_, err = io.Copy(dstFile, srcFile)
+	if err != nil {
+		return err
+	}
+
+	// Fix permissions of destination file
+	srcInfo, err := os.Stat(src)
+	if err != nil {
+		return err
+	}
+	if err := os.Chmod(dst, srcInfo.Mode()); err != nil {
+		return err
+	}
+
+	// Fix ownership of destination file
+	srcSysInfo := srcInfo.Sys().(*syscall.Stat_t)
+	if err := os.Chown(dst, int(srcSysInfo.Uid), int(srcSysInfo.Gid)); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func MoveFile(src, dst string) error {
+	// Fix ownership of destination file
+	srcInfo, err := os.Stat(src)
+	if err != nil {
+		return err
+	}
+	srcSysInfo := srcInfo.Sys().(*syscall.Stat_t)
+
+	// Move file
+	if err := os.Rename(src, dst); err != nil {
+		return err
+	}
+
+	// Fix ownership of destination file
+	if err := os.Chown(dst, int(srcSysInfo.Uid), int(srcSysInfo.Gid)); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -140,15 +200,7 @@ func FetchFileSize(path string) (int64, error) {
 	}
 }
 
-func ListFiles(basePath string, relativePath string) ([]FileInfo, error) {
-	// Check relative path for path traversal attacks
-	relativePath = filepath.Clean(relativePath)
-	if filepath.IsAbs(relativePath) {
-		return nil, fmt.Errorf("invalid relative path: %s", relativePath)
-	}
-
-	fullPath := filepath.Join(basePath, relativePath)
-
+func ListFiles(fullPath string) ([]FileInfo, error) {
 	var fileInfos []FileInfo
 	files, err := os.ReadDir(fullPath)
 	if err != nil {
@@ -164,7 +216,7 @@ func ListFiles(basePath string, relativePath string) ([]FileInfo, error) {
 		fileInfos = append(fileInfos, FileInfo{
 			Name:    info.Name(),
 			Size:    info.Size(),
-			Mode:    info.Mode(),
+			Mode:    fmt.Sprintf("%o", info.Mode().Perm()),
 			ModTime: info.ModTime(),
 			UID:     uint(sysInfo.Uid),
 			GID:     uint(sysInfo.Gid),
@@ -173,4 +225,34 @@ func ListFiles(basePath string, relativePath string) ([]FileInfo, error) {
 	}
 
 	return fileInfos, nil
+}
+
+// DownloadFile downloads a file from the given URL and saves it to the specified path
+func DownloadFile(url string, path string) error {
+	// Create the file
+	file, err := os.Create(path)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	// Get the data
+	resp, err := http.Get(url)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	// Check server response
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("bad status: %s", resp.Status)
+	}
+
+	// Write the data to the file
+	_, err = io.Copy(file, resp.Body)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
