@@ -62,7 +62,10 @@ var exportCmd = &cobra.Command{
 var sizeCmd = &cobra.Command{
 	Use: "size",
 	Run: func(cmd *cobra.Command, args []string) {
-		size := PVSize()
+		size, err := FetchFileSize(pvDirectory)
+		if err != nil {
+			size = 0
+		}
 		// Write size to /app/size.txt for backward compatibility.
 		file := "/app/size.txt"
 		f, err := os.Create(file)
@@ -74,7 +77,7 @@ var sizeCmd = &cobra.Command{
 		if err != nil {
 			PrintError(err.Error())
 		}
-		PrintData(map[string]int64{"size": size})
+		PrintData(size)
 	},
 }
 
