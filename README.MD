@@ -2,61 +2,27 @@
 
 This is an utility to do various operation on docker volumes.
 
-#### Mounting Points
+#### Commands
+
+| Command   | Flags                | Description                                    |
+| --------- | -------------------- | ---------------------------------------------- |
+| `export`  | `path` `http-method` | Export a persistent volume to a file or URL.   |
+| `import`  | `path` `http-method` | Import a persistent volume from a file or URL. |
+| `size`    |                      | Measure the size of a persistent volume.       |
+| `destroy` |                      | Destroy all data in the persistent volume.     |
+
+### Output format
+
+```json
+{
+  "success": true,
+  "error": "",
+  "data": "Data has been imported"
+}
+```
+
+#### Notes
 
 - `/data` > This is the mounting point for the persistent volume
 - `/app` > This is the mounting point for the toolkit. After export volume, the `backup.tar.gz` file will be created in this directory. And for import volume, the `backup.tar.gz` file should be placed in this directory.
-
-#### Usage
-
-1. Export a persistent volume
-
-a. Mount and export
-
-```bash
-docker run --rm -v <persistent-volume-name>:/data -v /path/to/backup:/app ghcr.io/swiftwave-org/volume-toolkit export
-```
-
-> Note : It is recommended to use `tmp` for `/path/to/backup` as it will be deleted after the export process.
-
-b. Copy backup file
-
-```bash
-cp /path/to/backup/backup.tar.gz <destination-path>
-```
-
-c. Remove the path/to/backup
-
-```bash
-rm -rf /path/to/backup
-```
-
-2. Import a persistent volume
-
-   a. Create a tmp directory
-
-   ```bash
-   mkdir /path/to/backup
-   ```
-
-   b. Copy backup file
-
-   ```bash
-   cp <source-path>/backup.tar.gz /path/to/backup
-   ```
-
-   c. Wipe up persistent volume and import data from backup
-
-   ```bash
-   docker run --rm -v <persistent-volume-name>:/data -v /path/to/backup:/app ghcr.io/swiftwave-org/volume-toolkit import
-   ```
-
-3. Measure the size of a persistent volume
-
-   a. Run the following command
-
-   ```bash
-   docker run --rm -v <persistent-volume-name>:/data  -v /path/to/backup:/app volume-toolkit size
-   ```
-
-   b. The size of the persistent volume will be written in `/path/to/backup/size.txt` file in bytes format.
+- All the sizes will be in bytes format.
