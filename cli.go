@@ -28,10 +28,10 @@ func init() {
 	rootCmd.AddCommand(destroyCmd)
 	rootCmd.AddCommand(fileOpCmd)
 
-	importCmd.Flags().String("path", "/app/backup.tar.gz", "Path of tar to import")
+	importCmd.Flags().String("path", "/app/dump.tar.gz", "Path of tar to import")
 	importCmd.Flags().String("http-method", "GET", "HTTP method to use")
 
-	exportCmd.Flags().String("path", "/app/backup.tar.gz", "Path of tar to export") // Path or URL where the backup will be stored.
+	exportCmd.Flags().String("path", "/app/dump.tar.gz", "Path of tar to export") // Path or URL where the backup will be stored.
 	exportCmd.Flags().String("http-method", "PUT", "HTTP method to use")
 
 	fileOpCmd.PersistentFlags().StringVar(&filePath, "path", "", "Path of the file")
